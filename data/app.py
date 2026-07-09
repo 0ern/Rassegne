@@ -50,7 +50,7 @@ def main():
         print("Non ci sono notizie pubblicate nelle ultime 24 ore nei tuoi feed.")
         return
 
-    print(f"Trovate {len(notizie_raccolte)} notizie recenti. Connessione a Ollama modello {nome_modello}...")
+    print(f"Trovate {len(notizie_raccolte)} notizie.\nConnessione a Ollama modello {nome_modello}")
 
     # 4. Gestione del Modello IA
     try:
@@ -71,46 +71,72 @@ def main():
     with open("Prompt_IA.txt", "r", encoding="utf-8") as f:
         prompt_base = f.read()
 
-    testo_per_ia = ""
-    for idx, notizia in enumerate(notizie_raccolte):
-        # Diamo all'IA il tag esatto, servito su un piatto d'argento
-        testo_per_ia += f"TAG_DA_COPIARE: [Link:{idx}]\nTitolo: {notizia['title']}\nDescrizione: {notizia['summary']}\n\n"
+    # --- CONFIGURAZIONE ELABORAZIONE A BLOCCHI (BATCHING) ---
+    dimensione_batch = 5  # Elabora massimo 5 notizie alla volta per garantire precisione assoluta
+    totale_notizie = len(notizie_raccolte)
+    
+    # Questo dizionario conterrà tutti i riassunti divisi per topic
+    # Struttura: {"Economia": ["testo blocco 1", "testo blocco 2"], "Lavoro": [...]}
+    rassegna_per_topic = {}    
+    print(f"Elaborazione...")
 
-    # Uniamo le istruzioni del prompt alle notizie reali in modo automatico e sicuro
-    prompt = f"{prompt_base}\n\nEcco le notizie da elaborare:\n{testo_per_ia}"
-
-    print("L'IA sta analizzando e raggruppando le notizie per topic...")
-    try:
-        risposta = ollama.chat(
-            model=nome_modello, # modello che usi
-            messages=[{'role': 'user', 'content': prompt}],
-            options={
-                'temperature': 0.1,  # Più basso è, più l'IA è obbediente e precisa con i link
-                #'num_ctx': 8192      # Estende la memoria per gestire molte notizie insieme
-            }
-        )
-        # Prendi il testo generato dall'IA (adatta il nome della variabile se diverso, es. risonanza/output)
-        testo_elaborato = risposta['message']['content']
-    except Exception as e:
-        print(f"Errore durante l'elaborazione dell'IA: {e}")
-        return
-
-    # 6. Sostituiamo i tag ID con i veri link cliccabili
-    for idx, notizia in enumerate(notizie_raccolte):
-        testo_elaborato = testo_elaborato.replace(f"[Link:{idx}]", f"[Leggi l'articolo]({notizia['link']})")
-
-#####################################################################################################################################################################
-    # 6. Sostituzione dei tag con i link reali in modalità "blindata"
-#    for idx, notizia in enumerate(notizie_raccolte):
-        # Questo pattern trova il tag anche se l'IA scrive [Link: 0], [Link:0], [link: 0] o [link:0]
-#        pattern = rf"\[\s*[Ll]ink\s*:\s*{idx}\s*\]"
-
-    # Formato del link finale nel file .md (Titolo cliccabile che porta al sito)
-#    link_markdown = f"[{notizia['title']}]({notizia['link']})"
-
-    # Esegue la sostituzione intelligente
-#    testo_elaborato = re.sub(pattern, link_markdown, testo_elaborato)
-#####################################################################################################################################################################
+    # 6. Fase di Analisi (Map): l'IA elabora i piccoli gruppi
+    for i in range(0, totale_notizie, dimensione_batch):
+        batch_corrente = notizie_raccolte[i:i+dimensione_batch]
+        numero_blocco = (i // dimensione_batch) + 1
+        totale_blocchi = -(-totale_notizie // dimensione_batch)
+        
+        # print(f"-> Analisi blocco {numero_blocco} di {totale_blocchi}...")
+        
+        testo_per_ia = ""
+        for idx_relativo, notizia in enumerate(batch_corrente):
+            idx_assoluto = i + idx_relativo
+            testo_per_ia += f"TAG_DA_COPIARE: [Link:{idx_assoluto}]\nTitolo: {notizia['title']}\nDescrizione: {notizia['summary']}\n\n"
+            
+        prompt = f"{prompt_base}\n\nEcco le notizie da elaborare:\n{testo_per_ia}"
+        
+        try:
+            response = ollama.chat(
+                model='llama3.1:8b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'temperature': 0.0, 'num_ctx': 8192}
+            )
+            testo_blocco = response['message']['content']
+            
+            # Sostituzione dei link markdown per questo blocco
+            for idx_relativo, notizia in enumerate(batch_corrente):
+                idx_assoluto = i + idx_relativo
+                pattern = rf"\[\s*[Ll]ink\s*:\s*{idx_assoluto}\s*\]\.?"
+                link_markdown = f"[{notizia['title']}]({notizia['link']}).\n\n"
+                testo_blocco = re.sub(pattern, link_markdown, testo_blocco)
+                
+            # --- SEPARAZIONE INTELLIGENTE DEI TOPIC ---
+            # Tagliamo il testo restituito dall'IA ogni volta che incontra un "## "
+            parti_topic = testo_blocco.split("## ")
+            for parte in parti_topic:
+                if not parte.strip():
+                    continue
+                
+                # La prima riga del blocco è il nome del Topic (es. "Economia"), il resto è il testo
+                linee = parte.split("\n")
+                nome_topic = linee[0].strip()
+                contenuto_topic = "\n".join(linee[1:]).strip()
+                
+                if contenuto_topic:
+                    # Se il topic non esiste nel dizionario, lo creiamo
+                    if nome_topic not in rassegna_per_topic:
+                        rassegna_per_topic[nome_topic] = []
+                    # Appendiamo il testo a quel determinato topic
+                    rassegna_per_topic[nome_topic].append(contenuto_topic)
+            
+        except Exception as e:
+            print(f"[ERRORE] Salto il blocco {numero_blocco} per un problema tecnico: {e}")
+    
+    testo_elaborato = ""    
+    for topic, contenuti in rassegna_per_topic.items():
+        testo_elaborato += f"## {topic}\n"
+        # Unisce i paragrafi dei vari blocchi separandoli con un doppio a capo
+        testo_elaborato += "\n\n".join(contenuti) + "\n\n"
 
     # 7. Salvataggio del Report del giorno
     data_oggi = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -128,7 +154,7 @@ def main():
         f.write(f"# Rassegna Stampa {datetime.datetime.now().strftime('%d/%m/%Y')}\n\n")
         f.write(testo_elaborato)
 
-    print(f"Rassegna completata con successo! Salvata in {percorso_report}")
+    print(f"Rassegna salvata in {percorso_report}")
     
     # Apre automaticamente il report dalla cartella Rassegne
     os.system(f"start {percorso_report}")

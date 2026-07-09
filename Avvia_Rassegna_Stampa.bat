@@ -5,7 +5,7 @@ echo ====================================================
 echo                 RASSEGNA STAMPA
 echo ====================================================
 echo.
-echo [Fase 1] Controllo e configurazione automatica dei programmi...
+echo [1] CONTROLLO PROGRAMMI.
 
 :: Controlla e crea le cartelle principali se mancano
 if not exist "Rassegne" mkdir "Rassegne"
@@ -15,7 +15,7 @@ if not exist "data" mkdir "data"
 powershell -ExecutionPolicy Bypass -File data\setup.ps1
 
 echo.
-echo [Fase 2] Avvio dell'analisi dei feed RSS...
+echo [2] ANALISI FEED RSS.
 if exist data\.venv (
         data\.venv\Scripts\python data\app.py
 ) else (
@@ -23,5 +23,5 @@ if exist data\.venv (
 )
 
 echo.
-echo [Fase 3] Operazione completata.
+echo [3] RASSEGNA CREATA.
 pause
