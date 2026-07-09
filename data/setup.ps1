@@ -22,7 +22,7 @@ if (-not $pythonInstalled) {
 
         Invoke-WebRequest -Uri $urlPython -OutFile $installerPython
 
-        Write-Host "-> Installazione silenziosa di Python in corso (Directory Utente)..." -ForegroundColor Yellow
+        Write-Host "-> Installazione di Python in corso (Directory Utente)..." -ForegroundColor Yellow
         Start-Process -FilePath $installerPython -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1" -Wait
 
         Remove-Item $installerPython
@@ -47,7 +47,7 @@ if (-not $ollamaInstalled) {
 
         Invoke-WebRequest -Uri $urlOllama -OutFile $installerOllama
 
-        Write-Host "-> Installazione silenziosa di Ollama in corso (Senza cliccare nulla)..." -ForegroundColor Yellow
+        Write-Host "-> Installazione di Ollama in corso..." -ForegroundColor Yellow
         # I parametri /SP- /VERYSILENT /NORESTART installano Ollama senza chiedere conferme visive e sbloccano il terminale
         Start-Process -FilePath $installerOllama -ArgumentList "/SP- /VERYSILENT /NORESTART" -Wait
 
