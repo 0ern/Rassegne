@@ -3,6 +3,9 @@ import datetime
 import time
 import feedparser
 import ollama
+import re
+
+nome_modello = "llama3.1:8b" # (Llama 3.2 , Gemma 4)
 
 def main():
     # 1. Controllo se il file delle fonti esiste
@@ -47,10 +50,9 @@ def main():
         print("Non ci sono notizie pubblicate nelle ultime 24 ore nei tuoi feed.")
         return
 
-    print(f"Trovate {len(notizie_raccolte)} notizie recenti. Connessione a Ollama...")
+    print(f"Trovate {len(notizie_raccolte)} notizie recenti. Connessione a Ollama modello {nome_modello}...")
 
-    # 4. Gestione del Modello IA (Usiamo Llama 3.2: leggero, veloce e potente in locale)
-    nome_modello = "llama3.2"
+    # 4. Gestione del Modello IA
     try:
         ollama.show(nome_modello)
     except Exception:
@@ -71,10 +73,11 @@ def main():
 
     testo_per_ia = ""
     for idx, notizia in enumerate(notizie_raccolte):
-        testo_per_ia += f"ID:[{idx}] | Titolo: {notizia['title']} | Descrizione: {notizia['summary']}\n\n"
+        # Diamo all'IA il tag esatto, servito su un piatto d'argento
+        testo_per_ia += f"TAG_DA_COPIARE: [Link:{idx}]\nTitolo: {notizia['title']}\nDescrizione: {notizia['summary']}\n\n"
 
     # Uniamo le istruzioni del prompt alle notizie reali in modo automatico e sicuro
-        prompt = f"{prompt_base}\n\nEcco le notizie da elaborare:\n{testo_per_ia}"
+    prompt = f"{prompt_base}\n\nEcco le notizie da elaborare:\n{testo_per_ia}"
 
     print("L'IA sta analizzando e raggruppando le notizie per topic...")
     try:
@@ -82,10 +85,11 @@ def main():
             model=nome_modello, # modello che usi
             messages=[{'role': 'user', 'content': prompt}],
             options={
-                'temperature': 0.2,  # Più basso è, più l'IA è obbediente e precisa con i link
-                'num_ctx': 8192      # Estende la memoria per gestire molte notizie insieme
+                'temperature': 0.1,  # Più basso è, più l'IA è obbediente e precisa con i link
+                #'num_ctx': 8192      # Estende la memoria per gestire molte notizie insieme
             }
         )
+        # Prendi il testo generato dall'IA (adatta il nome della variabile se diverso, es. risonanza/output)
         testo_elaborato = risposta['message']['content']
     except Exception as e:
         print(f"Errore durante l'elaborazione dell'IA: {e}")
@@ -93,7 +97,20 @@ def main():
 
     # 6. Sostituiamo i tag ID con i veri link cliccabili
     for idx, notizia in enumerate(notizie_raccolte):
-        testo_elaborato = testo_elaborato.replace(f"[Link:{idx}]", f"([Leggi l'articolo originale]({notizia['link']}))")
+        testo_elaborato = testo_elaborato.replace(f"[Link:{idx}]", f"[Leggi l'articolo]({notizia['link']})")
+
+#####################################################################################################################################################################
+    # 6. Sostituzione dei tag con i link reali in modalità "blindata"
+#    for idx, notizia in enumerate(notizie_raccolte):
+        # Questo pattern trova il tag anche se l'IA scrive [Link: 0], [Link:0], [link: 0] o [link:0]
+#        pattern = rf"\[\s*[Ll]ink\s*:\s*{idx}\s*\]"
+
+    # Formato del link finale nel file .md (Titolo cliccabile che porta al sito)
+#    link_markdown = f"[{notizia['title']}]({notizia['link']})"
+
+    # Esegue la sostituzione intelligente
+#    testo_elaborato = re.sub(pattern, link_markdown, testo_elaborato)
+#####################################################################################################################################################################
 
     # 7. Salvataggio del Report del giorno
     data_oggi = datetime.datetime.now().strftime("%Y-%m-%d")

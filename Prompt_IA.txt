@@ -12,3 +12,4 @@ Regole tassative di output:
 2. Sotto il titolo scrivi SOLO testo continuo e scorrevole. Vietati elenchi con asterischi (*), numeri (1.) o trattini (-).
 3. Alla fine di ogni frase inserisci il tag numerico della notizia usando il NUMERO dell'ID fornito, scritto esattamente nella forma [Link:0], [Link:1], [Link:2], ecc. Non scrivere mai la parola "ID" o "Numero" dentro le parentesi, ma inserisci solo la cifra numerica corrispondente.
 4. Non inventare i link ma usa solo le fonti che ti do.
+5. Impiega più tempo a darmi la risposta ma verifica bene le informazioni degli articoli. Questo è importante.

@@ -1,13 +1,11 @@
 # Configurazione per mostrare correttamente i testi in italiano
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-Write-Host "=== VERIFICA PREREQUISITI DI SISTEMA ===" -ForegroundColor Cyan
-
 # ----------------------------------------------------
 # 1. CONTROLLO E INSTALLAZIONE PYTHON
 # ----------------------------------------------------
 $pythonInstalled = $false
-$localPythonPath = "$env:USERPROFILE\AppData\Local\Programs\Python\Python312\python.exe"
+$localPythonPath = "$env:USERPROFILE\AppData\Local\Programs\Python\Python314\python.exe"
 
 if (Get-Command python -ErrorAction SilentlyContinue) {
         $pythonInstalled = $true
@@ -19,7 +17,7 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
 
 if (-not $pythonInstalled) {
         Write-Host "-> Python NON trovato. Download dell'installatore ufficiale..." -ForegroundColor Yellow
-        $urlPython = "https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe"
+        $urlPython = "https://www.python.org/ftp/python/3.14.6/python-3.14.6-amd64.exe"
         $installerPython = "$env:TEMP\python_installer.exe"
 
         Invoke-WebRequest -Uri $urlPython -OutFile $installerPython
@@ -74,3 +72,9 @@ if (-not (Test-Path "$PSScriptRoot\.venv")) {
 } else {
         Write-Host "[OK] Ambiente locale (.venv) gia' configurato." -ForegroundColor Green
 }
+
+# --- AUTOMAZIONE DOWNLOAD MODELLO IA ---
+# Avvia il download mostrando la barra di avanzamento in una finestra dedicata
+Start-Process -FilePath "ollama" -ArgumentList "pull llama3.1:8b" -Wait
+
+Write-Host "[OK] Modello llama3.1:8b verificato e pronto all'uso!" -ForegroundColor Green
