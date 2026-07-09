@@ -78,7 +78,14 @@ def main():
 
     print("L'IA sta analizzando e raggruppando le notizie per topic...")
     try:
-        risposta = ollama.chat(model=nome_modello, messages=[{"role": "user", "content": prompt}])
+        risposta = ollama.chat(
+            model=nome_modello, # modello che usi
+            messages=[{'role': 'user', 'content': prompt}],
+            options={
+                'temperature': 0.2,  # Più basso è, più l'IA è obbediente e precisa con i link
+                'num_ctx': 8192      # Estende la memoria per gestire molte notizie insieme
+            }
+        )
         testo_elaborato = risposta['message']['content']
     except Exception as e:
         print(f"Errore durante l'elaborazione dell'IA: {e}")
