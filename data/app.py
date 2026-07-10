@@ -5,26 +5,41 @@ import feedparser
 import ollama
 import re
 
-nome_modello = "llama3.1:8b" # (Llama 3.2 , Gemma 4)
+# Color constants
+RED = '\033[91m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+BLUE = '\033[34m'
+DARK_GREY = '\033[90m'
+ITALIC = '\033[3m'
+RESET = '\033[0m'
+BLINK = '\033[5m'
+
+# VARIABILI MODIFICABILI
+nome_modello = "llama3.1:8b" # (Llama 3 , Gemma 4)
+model_code = 'llama3.1:8b'
+file_fonti = "Fonti.txt"
+prompt_ia = "Prompt_IA.txt"
+output_folder = "Rassegne"
 
 def main():
     # 1. Controllo se il file delle fonti esiste
-    if not os.path.exists("Fonti.txt"):
-        print("Errore: Il file Fonti.txt non esiste. Crealo e inserisci i feed RSS.")
+    if not os.path.exists(file_fonti):
+        print("{RED}Errore: Il file {file_fonti} non esiste. Crealo e inserisci i feed RSS.{RESET}")
         return
 
-    with open("Fonti.txt", "r", encoding="utf-8") as f:
+    with open(file_fonti, "r", encoding="utf-8") as f:
         urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
     if not urls:
-        print("Nessun link trovato in Fonti.txt.")
+        print("{YELLOW}Nessun link trovato in {file_fonti}.{RESET}")
         return
 
-    print(f"Lettura di {len(urls)} fonti in corso...")
+    print(f"{DARK_GREY}Lettura di {len(urls)} fonti in corso.{RESET}")
 
     # 2. Impostiamo il filtro temporale (Ultime 24 ore)
     ora_attuale = datetime.datetime.now(datetime.timezone.utc)
-    ventiquattro_ore_fa = ora_attuale - datetime.timedelta(hours=24)
+    ventiquattro_ore_fa = ora_attuale - datetime.timedelta(hours=24) # Impostare qui le ore di notizie da analizzare
     notizie_raccolte = []
 
     # 3. Estrazione notizie dai feed RSS
@@ -44,31 +59,31 @@ def main():
                             "summary": entry.get('summary', 'Nessun sommario disponibile.')
                             })
         except Exception as e:
-            print(f"Impossibile leggere la fonte {url}: {e}")
+            print(f"{RED}Impossibile leggere la fonte {url}: {e} {RESET}")
             
     if not notizie_raccolte:
         print("Non ci sono notizie pubblicate nelle ultime 24 ore nei tuoi feed.")
         return
 
-    print(f"Trovate {len(notizie_raccolte)} notizie.\nConnessione a Ollama modello {nome_modello}")
+    print(f"{DARK_GREY}Trovate {len(notizie_raccolte)} notizie.\nConnessione a Ollama modello {nome_modello} {RESET}")
 
     # 4. Gestione del Modello IA
     try:
         ollama.show(nome_modello)
     except Exception:
-        print(f"Modello '{nome_modello}' non trovato. Download in corso (solo per la prima volta, attendere)...")
+        print(f"{YELLOW}Modello '{nome_modello}' non trovato. Download in corso (solo per la prima volta, attendere)...{RESET}")
         try:
             ollama.pull(nome_modello)
         except Exception:
-            print("Errore: Ollama non risponde. Assicurati che l'app Ollama sia aperta sul PC!")
+            print("{RED}Errore: Ollama non risponde. Assicurati che l'app Ollama sia aperta sul PC!{RESET}")
             return
 
     # 5. Caricamento del prompt esterno e preparazione dei dati
-    if not os.path.exists("Prompt_IA.txt"):
-        print("Errore: Il file Prompt_IA.txt non esiste nella cartella.")
+    if not os.path.exists(prompt_ia):
+        print("{RED}Errore: Il file Prompt_IA.txt non esiste nella cartella.{RESET}")
         return
 
-    with open("Prompt_IA.txt", "r", encoding="utf-8") as f:
+    with open(prompt_ia, "r", encoding="utf-8") as f:
         prompt_base = f.read()
 
     # --- CONFIGURAZIONE ELABORAZIONE A BLOCCHI (BATCHING) ---
@@ -78,7 +93,7 @@ def main():
     # Questo dizionario conterrà tutti i riassunti divisi per topic
     # Struttura: {"Economia": ["testo blocco 1", "testo blocco 2"], "Lavoro": [...]}
     rassegna_per_topic = {}    
-    print(f"Elaborazione...")
+    print(f"{BLINK}Elaborazione...{RESET}")
 
     # 6. Fase di Analisi (Map): l'IA elabora i piccoli gruppi
     for i in range(0, totale_notizie, dimensione_batch):
@@ -86,7 +101,7 @@ def main():
         numero_blocco = (i // dimensione_batch) + 1
         totale_blocchi = -(-totale_notizie // dimensione_batch)
         
-        # print(f"-> Analisi blocco {numero_blocco} di {totale_blocchi}...")
+        # print(f"Analisi blocco {numero_blocco} di {totale_blocchi}...")
         
         testo_per_ia = ""
         for idx_relativo, notizia in enumerate(batch_corrente):
@@ -97,7 +112,7 @@ def main():
         
         try:
             response = ollama.chat(
-                model='llama3.1:8b',
+                model=model_code,
                 messages=[{'role': 'user', 'content': prompt}],
                 options={'temperature': 0.0, 'num_ctx': 8192}
             )
@@ -130,7 +145,7 @@ def main():
                     rassegna_per_topic[nome_topic].append(contenuto_topic)
             
         except Exception as e:
-            print(f"[ERRORE] Salto il blocco {numero_blocco} per un problema tecnico: {e}")
+            print(f"{RED}[ERRORE] Salto il blocco {numero_blocco} per un problema tecnico: {e} {RESET}")
     
     testo_elaborato = ""    
     for topic, contenuti in rassegna_per_topic.items():
@@ -143,18 +158,18 @@ def main():
     nome_report = f"{data_oggi}_Rassegna_Stampa.md"
 
     # Crea la cartella Rassegne se non esiste (ulteriore sicurezza per Python)
-    if not os.path.exists("Rassegne"):
-        os.makedirs("Rassegne")
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
     # Definiamo il percorso finale dentro la cartella Rassegne
-    percorso_report = os.path.join("Rassegne", nome_report)
+    percorso_report = os.path.join(output_folder, nome_report)
 
     # Salviamo il file nel nuovo percorso
     with open(percorso_report, "w", encoding="utf-8") as f:
         f.write(f"# Rassegna Stampa {datetime.datetime.now().strftime('%d/%m/%Y')}\n\n")
         f.write(testo_elaborato)
 
-    print(f"Rassegna salvata in {percorso_report}")
+    print(f"{GREEN}Rassegna salvata in {percorso_report}{RESET}")
     
     # Apre automaticamente il report dalla cartella Rassegne
     os.system(f"start {percorso_report}")

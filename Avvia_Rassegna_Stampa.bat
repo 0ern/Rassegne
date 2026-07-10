@@ -1,5 +1,5 @@
 @echo off
-title Rassegna Stampa Mattutina
+title Rassegna Stampa
 cls
 echo ====================================================
 echo                 RASSEGNA STAMPA
@@ -8,7 +8,6 @@ echo.
 echo [1] CONTROLLO PROGRAMMI.
 
 :: Controlla e crea le cartelle principali se mancano
-if not exist "Rassegne" mkdir "Rassegne"
 if not exist "data" mkdir "data"
 
 :: Esegue lo script PowerShell bypassando le restrizioni di blocco di Windows
@@ -23,5 +22,4 @@ if exist data\.venv (
 )
 
 echo.
-echo [3] RASSEGNA CREATA.
 pause

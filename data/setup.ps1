@@ -16,20 +16,20 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
 }
 
 if (-not $pythonInstalled) {
-        Write-Host "-> Python NON trovato. Download dell'installatore ufficiale..." -ForegroundColor Yellow
+        Write-Host "Python NON trovato. Download..."
         $urlPython = "https://www.python.org/ftp/python/3.14.6/python-3.14.6-amd64.exe"
         $installerPython = "$env:TEMP\python_installer.exe"
 
         Invoke-WebRequest -Uri $urlPython -OutFile $installerPython
 
-        Write-Host "-> Installazione silenziosa di Python in corso (Directory Utente)..." -ForegroundColor Yellow
+        Write-Host "Installazione di Python in corso (Directory Utente)..."
         Start-Process -FilePath $installerPython -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1" -Wait
 
         Remove-Item $installerPython
         $pythonCmd = $localPythonPath
-        Write-Host "[OK] Python installato con successo!" -ForegroundColor Green
+        Write-Host "Python installato con successo." -ForegroundColor Green
 } else {
-        Write-Host "[OK] Python e' gia' presente sul PC." -ForegroundColor Green
+        Write-Host "Python presente sul PC." -ForegroundColor Green
 }
 
 # ----------------------------------------------------
@@ -41,40 +41,40 @@ if (Get-Command ollama -ErrorAction SilentlyContinue) {
 }
 
 if (-not $ollamaInstalled) {
-        Write-Host "-> Ollama NON trovato. Download in corso..." -ForegroundColor Yellow
+        Write-Host "Ollama NON trovato. Download in corso..."
         $urlOllama = "https://ollama.com/download/OllamaSetup.exe"
         $installerOllama = "$env:TEMP\OllamaSetup.exe"
 
         Invoke-WebRequest -Uri $urlOllama -OutFile $installerOllama
 
-        Write-Host "-> Installazione silenziosa di Ollama in corso (Senza cliccare nulla)..." -ForegroundColor Yellow
+        Write-Host "Installazione di Ollama in corso..."
         # I parametri /SP- /VERYSILENT /NORESTART installano Ollama senza chiedere conferme visive e sbloccano il terminale
         Start-Process -FilePath $installerOllama -ArgumentList "/SP- /VERYSILENT /NORESTART" -Wait
 
         # Aspettiamo 5 secondi che Windows registri l'installazione
         Start-Sleep -Seconds 5
         Remove-Item $installerOllama
-        Write-Host "[OK] Ollama installato in background!" -ForegroundColor Green
+        Write-Host "Ollama installato in background." -ForegroundColor Green
 } else {
-        Write-Host "[OK] Ollama e' gia' presente sul PC." -ForegroundColor Green
+        Write-Host "Ollama presente sul PC." -ForegroundColor Green
 }
 
 # ----------------------------------------------------
 # 3. CREAZIONE AMBIENTE VIRTUALE E LIBRERIE (.venv)
 # ----------------------------------------------------
 if (-not (Test-Path "$PSScriptRoot\.venv")) {
-        Write-Host "-> Creazione dell'ambiente isolato (.venv) nella cartella data..." -ForegroundColor Yellow
+        Write-Host "Creazione dell'ambiente isolato (.venv) nella cartella \data..."
         Start-Process -FilePath $pythonCmd -ArgumentList "-m venv $PSScriptRoot\.venv" -Wait
 
-        Write-Host "-> Installazione delle librerie necessarie nella cartella locale..." -ForegroundColor Yellow
-        Start-Process -FilePath "$PSScriptRoot\.venv\Scripts\pip.exe" -ArgumentList "install feedparser ollama requests" -Wait -NoNewWindow
-        Write-Host "[OK] Ambiente locale configurato e pronto!" -ForegroundColor Green
+        Write-Host "Installazione delle librerie necessarie nella cartella locale..."
+        Start-Process -FilePath "$PSScriptRoot\.venv\Scripts\pip.exe" -ArgumentList "install feedparser ollama requests" -Wait -NoNewWindow -RedirectStandardOutput "$env:TEMP\nul"
+        Write-Host "Ambiente locale configurato." -ForegroundColor Green
 } else {
-        Write-Host "[OK] Ambiente locale (.venv) gia' configurato." -ForegroundColor Green
+        Write-Host "Ambiente locale (.venv) configurato." -ForegroundColor Green
 }
 
 # --- AUTOMAZIONE DOWNLOAD MODELLO IA ---
 # Avvia il download mostrando la barra di avanzamento in una finestra dedicata
 Start-Process -FilePath "ollama" -ArgumentList "pull llama3.1:8b" -Wait
 
-Write-Host "[OK] Modello llama3.1:8b verificato e pronto all'uso!" -ForegroundColor Green
+Write-Host "Modello llama3.1:8b pronto." -ForegroundColor Green

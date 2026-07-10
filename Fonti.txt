@@ -1,4 +1,11 @@
+# METTERE UN "#" DAVANTI ALLA FONTE PER NON UTILIZZARLA
 https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml
-https://www.ilsole24ore.com/rss/economia--lavoro.xml
-https://www.hdblog.it/rss/
+#https://www.ilsole24ore.com/rss/economia--lavoro.xml
+#https://www.hdblog.it/rss/
 https://www.theverge.com/rss/index.xml
+#https://www.gazzetta.it/dynamic-feed/rss/section/last.xml
+#https://www.gazzetta.it/dynamic-feed/rss/section/Calcio.xml
+https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+#https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml
+https://xml2.corriereobjects.it/feed-hp/homepage-restyle-2025.xml
+#https://www.wired.com/feed/category/ideas/latest/rss
